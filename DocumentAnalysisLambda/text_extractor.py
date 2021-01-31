@@ -3,7 +3,7 @@ import boto3
 
 textract = boto3.client('textract')
 
-
+# Class dedicated to extracting the text::
 class TextExtractor():
     
     def extract_text(self, jobId):
@@ -14,6 +14,7 @@ class TextExtractor():
         self.__extract_all_pages(jobId, textract_result, pages, [])
         return pages
 
+
     def __get_textract_result(self, jobId):
         #Retrieve textract result with jobId:
 
@@ -22,11 +23,13 @@ class TextExtractor():
         )
         return result
 
+
     def __extract_all_pages(self, jobId, textract_result, pages, page_numbers):
         #Build the pages array; recurse if response is too big:
 
         blocks = [x for x in textract_result['Blocks']
                   if x['BlockType'] == "LINE"]
+                  
         for block in blocks:
             if block['Page'] not in page_numbers:
                 page_numbers.append(block['Page'])
