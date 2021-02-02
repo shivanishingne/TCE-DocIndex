@@ -1,28 +1,47 @@
-import urllib
-import boto3
-import os
+import json
+from text_extractor import TextExtractor
+from document_analyzer import DocumentAnalyzer
+from document_indexer import DocumentIndexer
 
-textract = boto3.client('textract')
+text_extractor = TextExtractor()
+document_analyzer = DocumentAnalyzer()
+document_indexer = DocumentIndexer()
 
-sns_topic_arn = os.environ["SNS_TOPIC_ARN"]
-sns_role_arn = os.environ["SNS_ROLE_ARN"]
 
+def lambda_handler(event, context):
 
-def handler(event, context):
-	source_bucket = event['Records'][0]['s3']['bucket']['name']
-	object_key = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'])
+    message = json.loads(event['Records'][0]['Sns']['Message'])
 
-	#StartDocumentTextDetection API starts asynchronous detection of text in a doc
-	textract_result = textract.start_document_text_detection(
-		DocumentLocation={
-			"S3Object": {
-				"Bucket": source_bucket,
-				"Name": object_key
-			}
-		},
-		NotificationChannel={
-			"SNSTopicArn": sns_topic_arn,
-			"RoleArn": sns_role_arn
-		}
-	)
-	print(textract_result)
+    jobId = message['JobId']
+    print("JobId="+jobId)
+
+    status = message['Status']
+    print("Status="+status)
+    if status != "SUCCEEDED":
+        return {
+            # TODO : for DLQ - https://docs.aws.amazon.com/lambda/latest/dg/dlq.html
+            "status": status
+        }
+
+    pages = text_extractor.extract_text(jobId)
+    print(list(pages.values()))
+
+    entities = document_analyzer.extract_entities(list(pages.values()))
+    print(entities)
+
+    doc = {
+        "bucket": message['DocumentLocation']['S3Bucket'],
+        "document": message['DocumentLocation']['S3ObjectName'],
+        "size": len(list(pages.values())),
+        "jobId": jobId,
+        "pages": list(pages.values()),
+        "entities": entities
+    }
+    print(doc)
+
+    docId = document_indexer.index(doc)
+
+    return {
+        "jobId": jobId,
+        "docId": docId
+    }
