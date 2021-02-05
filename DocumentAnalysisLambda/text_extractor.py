@@ -3,7 +3,7 @@ import boto3
 
 textract = boto3.client('textract')
 
-# Class dedicated to extracting the text::
+# Class dedicated to extracting the text
 class TextExtractor():
     
     def extract_text(self, jobId):

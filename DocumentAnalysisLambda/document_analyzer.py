@@ -20,6 +20,7 @@ class DocumentAnalyzer():
             )
 
             # returns: text, position(offset), score, type
+            
             # uncomment to see output of comprehend:
             # print(detected_entities)
 
